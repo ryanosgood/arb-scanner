@@ -14,7 +14,7 @@ from flask import Flask, jsonify, Response
 
 app = Flask(__name__)
 
-# ââ Config âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# Ã¢ÂÂÃ¢ÂÂ Config Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 
 KALSHI_BASE   = "https://api.elections.kalshi.com/trade-api/v2"
 AB_BASE       = "https://actionbets.ag/cloud/api"
@@ -143,12 +143,12 @@ TEAM_ALIASES = {
     "ARI": ["arizona","cardinals"],
 }
 
-# ââ State ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# Ã¢ÂÂÃ¢ÂÂ State Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 
 _state = {
     "kalshi_markets":    [],
     "ab_token":          None,
-    "ab_session":        None,   # requests.Session() â preserves cookies
+    "ab_session":        None,   # requests.Session() Ã¢ÂÂ preserves cookies
     "ab_lines":          {},
     "ab_lines_raw":      None,   # raw response stored in memory (not on disk)
     "ab_lines_endpoint": None,
@@ -162,13 +162,13 @@ _state = {
     "ab_office":         "PREMIER",  # populated on login from accountInfo.Office
     "errors":            [],
     "stake":             100.0,
-    "probe_results":     {},    # path â status code (for /api/debug)
+    "probe_results":     {},    # path Ã¢ÂÂ status code (for /api/debug)
     "sample_resp_headers": {},  # response headers from first 406/401 (debug)
 }
 _lock = threading.Lock()
 
 
-# ââ Odds Math ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# Ã¢ÂÂÃ¢ÂÂ Odds Math Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 
 def american_to_decimal(american):
     american = float(american)
@@ -217,7 +217,7 @@ def check_arb(kalshi_price, ab_american, total_stake=100.0):
     }
 
 
-# ââ ActionBets Auth ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# Ã¢ÂÂÃ¢ÂÂ ActionBets Auth Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 
 def ab_login(username, password):
     """Login to ActionBets. Returns (token, session) or (None, None)."""
@@ -352,7 +352,7 @@ def ab_probe_lines(token, session):
     for path in AB_LINES_PATHS:
         url = AB_BASE + path
 
-        # Try each Accept variant with Bearer token â with and without agentSite param
+        # Try each Accept variant with Bearer token Ã¢ÂÂ with and without agentSite param
         for param_set in [{"agentSite": 0}, {}]:
             for hv in AB_HEADER_VARIANTS:
                 headers = {**hv, "Authorization": f"Bearer {token}"}
@@ -450,11 +450,11 @@ def ab_fetch_lines(token, session, endpoint, headers):
     return None
 
 
-# ââ Parse AB Lines âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# Ã¢ÂÂÃ¢ÂÂ Parse AB Lines Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 
-def parse_ab_lines(raw_data):
+def parse_ab_lines(raw_data, sport_sub=""):
     """
-    Parse ActionBets Get_LeagueLines2 response into {team_key: {ml, team}}.
+    Parse ActionBets Get_LeagueLines2 response into {team_key: {ml, team, sport}}.
     Response shape: {"Lines": [{Team1ID, Team2ID, MoneyLine1, MoneyLine2, ...}]}
     """
     lines = {}
@@ -464,6 +464,7 @@ def parse_ab_lines(raw_data):
     with _lock:
         _state["ab_lines_raw"] = raw_data
 
+    sport = sport_sub.upper()
     game_list = raw_data.get("Lines", [])
     for game in game_list:
         if not isinstance(game, dict):
@@ -475,27 +476,29 @@ def parse_ab_lines(raw_data):
 
         if t1 and ml1 is not None:
             try:
-                lines[t1.strip().lower()] = {"ml": float(ml1), "team": t1.strip()}
+                lines[t1.strip().lower()] = {"ml": float(ml1), "team": t1.strip(), "sport": sport}
             except (ValueError, TypeError):
                 pass
 
         if t2 and ml2 is not None:
             try:
-                lines[t2.strip().lower()] = {"ml": float(ml2), "team": t2.strip()}
+                lines[t2.strip().lower()] = {"ml": float(ml2), "team": t2.strip(), "sport": sport}
             except (ValueError, TypeError):
                 pass
 
     return lines
-def match_team(kalshi_code, ab_lines):
+def match_team(kalshi_code, ab_lines, required_sport=""):
     aliases = TEAM_ALIASES.get(kalshi_code.upper(), [kalshi_code.lower()])
     for ab_key, ab_data in ab_lines.items():
+        if required_sport and ab_data.get("sport", "").upper() != required_sport.upper():
+            continue
         for alias in aliases:
             if alias in ab_key or ab_key in alias:
                 return ab_data["team"], ab_data["ml"]
     return None, None
 
 
-# ââ Kalshi Fetch âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# Ã¢ÂÂÃ¢ÂÂ Kalshi Fetch Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 
 def _get(url):
     try:
@@ -547,43 +550,90 @@ def fetch_kalshi_markets():
     return markets
 
 
-# ââ Arb Engine âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# Ã¢ÂÂÃ¢ÂÂ Arb Engine Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+
+def parse_opponent_code(event_sub, team_code):
+    """Extract opponent team code from event_sub like 'POR at SAS (Apr 28)'."""
+    s = event_sub.upper()
+    for sep in [" AT ", " VS ", " VS. ", " @ "]:
+        if sep in s:
+            parts = s.split(sep)
+            away = parts[0].strip().split()[0]
+            home = parts[1].strip().split()[0]
+            if team_code.upper() == away:
+                return home
+            elif team_code.upper() == home:
+                return away
+    return ""
+
+# Only game-winner series support team-based arb matching
+GAME_SERIES = {"KXNBAGAME", "KXMLBGAME", "KXNFLGAME"}
+SERIES_TO_SPORT = {
+    "KXNBAGAME": "NBA",
+    "KXMLBGAME": "MLB",
+    "KXNFLGAME": "NFL",
+}
 
 def find_arb_opps(kalshi_markets, ab_lines, stake=100.0):
     opps = []
     for m in kalshi_markets:
+        series = m.get("series", "")
+        # Skip totals (KXNBATOTAL, KXMLBTOTAL, KXNHLTOTAL) — no moneyline match possible
+        if series not in GAME_SERIES:
+            continue
         code = m.get("team_code", "")
         if not code:
             continue
-        ab_team, ab_ml = match_team(code, ab_lines)
-        if not ab_team:
-            continue
-        for side, price, label in [
-            ("YES", m["yes_price"], f"YES â {m['title']}"),
-            ("NO",  m["no_price"],  f"NO  â {m['title']}"),
-        ]:
-            arb = check_arb(price, ab_ml, stake)
+
+        sport = SERIES_TO_SPORT.get(series, "")
+        # team_code = the team that Kalshi YES means wins
+        ab_team, ab_ml = match_team(code, ab_lines, required_sport=sport)
+
+        # Find opponent for correct YES-side pairing
+        opp_code = parse_opponent_code(m.get("event_sub", ""), code)
+        ab_opp, ab_ml_opp = (match_team(opp_code, ab_lines, required_sport=sport)
+                             if opp_code else (None, None))
+
+        # YES: Kalshi YES (team wins) vs AB on OPPONENT (team loses) — opposite outcomes
+        if ab_opp and ab_ml_opp is not None:
+            arb = check_arb(m["yes_price"], ab_ml_opp, stake)
             if arb:
                 opps.append({
                     "event_title":     m["event_title"],
                     "event_sub":       m["event_sub"],
-                    "series":          m["series"],
+                    "series":          series,
                     "kalshi_ticker":   m["ticker"],
-                    "kalshi_side":     label,
-                    "kalshi_price":    price,
-                    "kalshi_american": price_to_american_str(price),
+                    "kalshi_side":     f"YES (Kalshi) — {ab_team} wins",
+                    "kalshi_price":    m["yes_price"],
+                    "kalshi_american": price_to_american_str(m["yes_price"]),
+                    "ab_team":         ab_opp,
+                    "ab_ml":           ab_ml_opp,
+                    "ab_american":     decimal_to_american_str(american_to_decimal(ab_ml_opp)),
+                    "stake":           stake,
+                    **arb,
+                })
+
+        # NO: Kalshi NO (team loses) vs AB on SAME TEAM (team wins) — opposite outcomes
+        if ab_team and ab_ml is not None:
+            arb = check_arb(m["no_price"], ab_ml, stake)
+            if arb:
+                opps.append({
+                    "event_title":     m["event_title"],
+                    "event_sub":       m["event_sub"],
+                    "series":          series,
+                    "kalshi_ticker":   m["ticker"],
+                    "kalshi_side":     f"NO (Kalshi) — {ab_team} loses",
+                    "kalshi_price":    m["no_price"],
+                    "kalshi_american": price_to_american_str(m["no_price"]),
                     "ab_team":         ab_team,
                     "ab_ml":           ab_ml,
                     "ab_american":     decimal_to_american_str(american_to_decimal(ab_ml)),
                     "stake":           stake,
                     **arb,
                 })
+
     opps.sort(key=lambda x: x["profit_pct"], reverse=True)
     return opps
-
-
-# ââ Credential Loading âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-
 def load_credentials():
     # 1. Environment variables (Railway)
     u = os.environ.get("AB_USERNAME", "").strip()
@@ -608,7 +658,7 @@ def load_credentials():
     return None, None
 
 
-# ââ Background Refresh âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# Ã¢ÂÂÃ¢ÂÂ Background Refresh Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 
 def full_refresh(stake=100.0):
     print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Refreshing...")
@@ -635,7 +685,7 @@ def full_refresh(stake=100.0):
             print(f"  Logging into ActionBets as {username}...")
             token, session = ab_login(username, password)
             if token:
-                ab_status = "Logged in â discovering lines endpoint..."
+                ab_status = "Logged in Ã¢ÂÂ discovering lines endpoint..."
                 endpoint  = None
                 hdrs      = None
             else:
@@ -646,7 +696,7 @@ def full_refresh(stake=100.0):
             leagues = ab_fetch_leagues(token, session)
             if leagues is None:
                 # Re-login and try again
-                print("  League fetch failed â re-logging in...")
+                print("  League fetch failed Ã¢ÂÂ re-logging in...")
                 token, session = ab_login(username, password)
                 if token:
                     leagues = ab_fetch_leagues(token, session)
@@ -681,16 +731,16 @@ def full_refresh(stake=100.0):
                                 lg.get("Grouping", ""),
                             )
                             if raw:
-                                parsed = parse_ab_lines(raw)
+                                parsed = parse_ab_lines(raw, sport_sub=lg.get("SportSubType", ""))
                                 all_raw_lines.update(parsed)
                 if all_raw_lines:
                     ab_lines  = all_raw_lines
-                    ab_status = f"Live â {len(ab_lines)} teams"
+                    ab_status = f"Live Ã¢ÂÂ {len(ab_lines)} teams"
                     print(f"  AB lines: {len(ab_lines)} teams")
                 else:
-                    ab_status = "Logged in — no games found on Lines/Get_LeagueLines2"
+                    ab_status = "Logged in â no games found on Lines/Get_LeagueLines2"
             else:
-                ab_status = "Logged in — league fetch failed (check /api/test-leagues)"
+                ab_status = "Logged in â league fetch failed (check /api/test-leagues)"
 
     else:
         ab_status = "Set AB_USERNAME + AB_PASSWORD in Railway env vars"
@@ -722,7 +772,7 @@ def background_loop():
         time.sleep(60)
 
 
-# ââ Flask Routes âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# Ã¢ÂÂÃ¢ÂÂ Flask Routes Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 
 @app.route("/api/status")
 def api_status():
@@ -799,7 +849,7 @@ def api_probe_live():
         token   = _state.get("ab_token")
         session = _state.get("ab_session")
     if not token or not session:
-        return jsonify({"error": "Not logged in â no token/session"})
+        return jsonify({"error": "Not logged in Ã¢ÂÂ no token/session"})
     # Always include full auth params (required by PPH Insider API)
     form_data = {**ab_auth_params(token), **b}
     url = AB_BASE + path
@@ -843,16 +893,16 @@ def api_scan_paths():
         return jsonify({"error": "Not logged in"})
     ax_hdrs = {"Accept":"application/json, text/plain, */*","X-Requested-With":"XMLHttpRequest","Authorization":f"Bearer {token}"}
     auth = ab_auth_params(token)
-    # Paths to probe â underscore naming convention discovered from Get_SportsLeagues
+    # Paths to probe Ã¢ÂÂ underscore naming convention discovered from Get_SportsLeagues
     paths_to_try = [
-        # League model â confirmed working base (Get_SportsLeagues returns 200)
+        # League model Ã¢ÂÂ confirmed working base (Get_SportsLeagues returns 200)
         "/League/Get_SportsLeagues",
         "/League/Get_Lines",
         "/League/Get_StraightLines",
         "/League/Get_GameLines",
         "/League/Get_Games",
         "/League/verifyLeagues",
-        # Lines model â PascalCase and underscore variants
+        # Lines model Ã¢ÂÂ PascalCase and underscore variants
         "/Lines/Get_Lines",
         "/Lines/Get_StraightLines",
         "/Lines/Get_GameLines",
@@ -860,13 +910,13 @@ def api_scan_paths():
         "/Lines/Get_Games",
         "/Lines/getLines",
         "/Lines/getStraightLines",
-        # Board model (returned 500 with empty body â try with auth params)
+        # Board model (returned 500 with empty body Ã¢ÂÂ try with auth params)
         "/Board/Get_Lines",
         "/Board/Get_Games",
         "/Board/Get_StraightLines",
         "/Board/GetLines",
         "/Board/GetGames",
-        # Game model (returned 500 with empty body â try with auth params)
+        # Game model (returned 500 with empty body Ã¢ÂÂ try with auth params)
         "/Game/Get_Games",
         "/Game/Get_Lines",
         "/Game/GetGames",
@@ -948,14 +998,14 @@ def index():
     return Response(HTML, mimetype="text/html")
 
 
-# ââ Frontend âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# Ã¢ÂÂÃ¢ÂÂ Frontend Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 
 HTML = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Arb Scanner â Kalshi x ActionBets</title>
+<title>Arb Scanner Ã¢ÂÂ Kalshi x ActionBets</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -1021,7 +1071,7 @@ HTML = r"""<!DOCTYPE html>
 </head>
 <body>
 <header>
-  <div class="logo">ARB SCANNER <span>Kalshi Ã ActionBets</span></div>
+  <div class="logo">ARB SCANNER <span>Kalshi ÃÂ ActionBets</span></div>
   <div class="header-right">
     <div class="stake-group">
       <label>STAKE $</label>
@@ -1096,10 +1146,10 @@ function render(data) {
     html += '<div class="warn-box">ActionBets logged in but lines endpoint not found yet. Check <a href="/api/debug" style="color:var(--yellow)">/api/debug</a> for probe results.</div>';
 
   if (!opps.length) {
-    html += '<div class="no-arb"><div class="icon">ð</div><h3>No arb opportunities right now</h3><p>Odds are too close across both books. Checks every 60 seconds â gaps appear when games are about to start or odds shift.</p>';
-    html += '<div class="mkt-box"><div style="font-size:11px;color:var(--muted);margin-bottom:5px">WATCHING</div><div style="font-weight:700">' + (data.kalshi_count||0) + ' Kalshi markets</div><div style="color:var(--muted);font-size:12px">NBA Â· MLB Â· NFL Â· Totals</div></div></div>';
+    html += '<div class="no-arb"><div class="icon">Ã°ÂÂÂ</div><h3>No arb opportunities right now</h3><p>Odds are too close across both books. Checks every 60 seconds Ã¢ÂÂ gaps appear when games are about to start or odds shift.</p>';
+    html += '<div class="mkt-box"><div style="font-size:11px;color:var(--muted);margin-bottom:5px">WATCHING</div><div style="font-weight:700">' + (data.kalshi_count||0) + ' Kalshi markets</div><div style="color:var(--muted);font-size:12px">NBA ÃÂ· MLB ÃÂ· NFL ÃÂ· Totals</div></div></div>';
   } else {
-    html += '<div id="arb-hdr"><h2>ð¢ ' + opps.length + ' Guaranteed Profit' + (opps.length>1?'s':'') + ' Found</h2><div class="sub">Sorted highest first Â· $' + stake + ' total stake</div></div>';
+    html += '<div id="arb-hdr"><h2>Ã°ÂÂÂ¢ ' + opps.length + ' Guaranteed Profit' + (opps.length>1?'s':'') + ' Found</h2><div class="sub">Sorted highest first ÃÂ· $' + stake + ' total stake</div></div>';
     opps.forEach((o,i) => {
       html += '<div class="card"><div class="card-hdr">';
       html += '<span class="rank">#'+(i+1)+' '+(ICONS[o.series]||'')+'</span>';
@@ -1113,7 +1163,7 @@ function render(data) {
       html += '<div class="summary"><div><div class="sl">Total staked</div><div class="sv">$'+o.stake+'</div></div>';
       html += '<div><div class="sl">Payout (either outcome)</div><div class="sv">$'+o.payout+'</div></div>';
       html += '<div><div class="sl">Guaranteed profit</div><div class="sv big">+$'+o.profit+'</div></div>';
-      html += '<div class="g">Win no matter what â</div></div></div></div>';
+      html += '<div class="g">Win no matter what Ã¢ÂÂ</div></div></div></div>';
     });
   }
   document.getElementById('content').innerHTML = html;
@@ -1124,7 +1174,7 @@ function render(data) {
 """
 
 
-# ââ Entry Point ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# Ã¢ÂÂÃ¢ÂÂ Entry Point Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 
 def start_background():
     t = threading.Thread(target=background_loop, daemon=True)
@@ -1145,7 +1195,7 @@ if __name__ == "__main__":
         with _lock:
             _state["ab_credentials"] = (u, p)
     else:
-        print("  Credentials: NOT FOUND â set AB_USERNAME / AB_PASSWORD")
+        print("  Credentials: NOT FOUND Ã¢ÂÂ set AB_USERNAME / AB_PASSWORD")
     print(f"  Port: {port}")
     print("="*60 + "\n")
     app.run(debug=False, port=port, use_reloader=False)
