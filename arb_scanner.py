@@ -305,57 +305,40 @@ def ab_fetch_lines_for_sport(token, session, sport_type, sport_sub_type,
                               sport_sub_type2="", period="Game",
                               period_number=0, grouping=""):
     """
-    Fetch game lines for a specific sport/league.
-    Tries likely function names on the Line/Lines model.
+    Fetch game lines for a specific sport/league using Lines/Get_LeagueLines2.
+    Returns raw response dict or None on failure.
     """
     headers = {
         "Accept": "application/json, text/plain, */*",
         "X-Requested-With": "XMLHttpRequest",
         "Authorization": f"Bearer {token}",
     }
-    base_params = {
+    params = {
         **ab_auth_params(token),
-        "sportType":     sport_type,
-        "sportSubType":  sport_sub_type,
-        "sportSubType2": sport_sub_type2,
-        "period":        period,
-        "periodNumber":  period_number,
-        "grouping":      grouping,
-        "propDescription": sport_sub_type2,
+        "sportType":       sport_type,
+        "sportSubType":    sport_sub_type,
+        "sportSubType2":   sport_sub_type2,
+        "period":          period,
+        "periodNumber":    period_number,
+        "grouping":        grouping,
+        "propDescription": sport_sub_type2 or period,
+        "operation":       "Get_LeagueLines2",
     }
-    # Try likely function+model combos (underscore convention from Get_SportsLeagues)
-    candidates = [
-        "/League/Get_Lines",
-        "/League/Get_StraightLines",
-        "/League/Get_GameLines",
-        "/Lines/Get_Lines",
-        "/Lines/Get_StraightLines",
-        "/Lines/Get_GameLines",
-        "/Board/Get_Lines",
-        "/Game/Get_Lines",
-        "/Game/Get_Games",
-    ]
-    for path in candidates:
-        func_name = path.split("/")[-1]
-        params = {**base_params, "operation": func_name}
-        url = AB_BASE + path
-        try:
-            r = session.post(url, data=params, headers=headers, timeout=15)
-            print(f"  [AB] {path} -> {r.status_code}")
-            if r.ok and len(r.text) > 50:
-                try:
-                    data = r.json()
-                    print(f"  [AB] SUCCESS on {path}")
-                    with _lock:
-                        _state["ab_lines_endpoint"] = path
-                        _state["ab_lines_raw"] = data
-                    return data
-                except Exception:
-                    pass
-        except Exception as e:
-            print(f"  [AB] {path} error: {e}")
+    url = AB_BASE + "/Lines/Get_LeagueLines2"
+    try:
+        r = session.post(url, data=params, headers=headers, timeout=15)
+        print(f"  [AB] Get_LeagueLines2 ({sport_type}/{sport_sub_type}) → {r.status_code}")
+        if r.ok:
+            data = r.json()
+            lines = data.get("Lines", [])
+            print(f"  [AB] Got {len(lines)} games for {sport_sub_type}")
+            with _lock:
+                _state["ab_lines_endpoint"] = url
+            return data
+        print(f"  [AB] Get_LeagueLines2 failed: {r.text[:200]}")
+    except Exception as e:
+        print(f"  [AB] Get_LeagueLines2 error: {e}")
     return None
-
 def ab_probe_lines(token, session):
     """
     Systematically try every path x header combo to find working lines endpoint.
@@ -471,8 +454,8 @@ def ab_fetch_lines(token, session, endpoint, headers):
 
 def parse_ab_lines(raw_data):
     """
-    Parse ActionBets lines into {team_key: {ml, team}}.
-    We don't know the exact schema yet — this tries every common structure.
+    Parse ActionBets Get_LeagueLines2 response into {team_key: {ml, team}}.
+    Response shape: {"Lines": [{Team1ID, Team2ID, MoneyLine1, MoneyLine2, ...}]}
     """
     lines = {}
     if not raw_data:
@@ -481,42 +464,30 @@ def parse_ab_lines(raw_data):
     with _lock:
         _state["ab_lines_raw"] = raw_data
 
-    def extract(obj):
-        if isinstance(obj, list):
-            for item in obj:
-                extract(item)
-        elif isinstance(obj, dict):
-            team_name = None
-            ml_odds   = None
+    game_list = raw_data.get("Lines", [])
+    for game in game_list:
+        if not isinstance(game, dict):
+            continue
+        t1 = game.get("Team1ID", "")
+        t2 = game.get("Team2ID", "")
+        ml1 = game.get("MoneyLine1")
+        ml2 = game.get("MoneyLine2")
 
-            for tf in ["team","teamName","TeamName","name","Name","homeTeam","awayTeam",
-                       "visitor","home","visitorTeam","homeTeamName","visitorTeamName"]:
-                if tf in obj and obj[tf]:
-                    team_name = str(obj[tf]).strip()
-                    break
+        if t1 and ml1 is not None:
+            try:
+                key = t1.strip().lower()
+                lines[key] = {"ml": float(ml1), "team": t1.strip()}
+            except (ValueError, TypeError):
+                pass
 
-            for mf in ["moneyLine","MoneyLine","ml","ML","price","odds","americanOdds",
-                       "openMoneyLine","OpenML","moneyline","money_line","spreadOdds"]:
-                if mf in obj and obj[mf] is not None:
-                    try:
-                        val = float(obj[mf])
-                        if val != 0:
-                            ml_odds = val
-                            break
-                    except:
-                        pass
+        if t2 and ml2 is not None:
+            try:
+                key = t2.strip().lower()
+                lines[key] = {"ml": float(ml2), "team": t2.strip()}
+            except (ValueError, TypeError):
+                pass
 
-            if team_name and ml_odds is not None:
-                lines[team_name.lower().strip()] = {"ml": ml_odds, "team": team_name}
-
-            for val in obj.values():
-                if isinstance(val, (list, dict)):
-                    extract(val)
-
-    extract(raw_data)
     return lines
-
-
 def match_team(kalshi_code, ab_lines):
     aliases = TEAM_ALIASES.get(kalshi_code.upper(), [kalshi_code.lower()])
     for ab_key, ab_data in ab_lines.items():
@@ -718,9 +689,9 @@ def full_refresh(stake=100.0):
                     ab_status = f"Live — {len(ab_lines)} teams"
                     print(f"  AB lines: {len(ab_lines)} teams")
                 else:
-                    ab_status = "Leagues found — lines endpoint not yet discovered (check /api/scan-paths)"
+                    ab_status = "Logged in — no games found on Lines/Get_LeagueLines2"
             else:
-                ab_status = "Logged in — lines endpoint not found (check /api/debug)"
+                ab_status = "Logged in — league fetch failed (check /api/test-leagues)"
 
     else:
         ab_status = "Set AB_USERNAME + AB_PASSWORD in Railway env vars"
