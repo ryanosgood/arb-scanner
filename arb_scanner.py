@@ -23,10 +23,20 @@ KALSHI_SERIES = ["KXNBAGAME", "KXMLBGAME", "KXNFLGAME", "KXNHLTOTAL", "KXNBATOTA
 
 # Header variants to try for AB lines (ordered by most likely to work)
 AB_HEADER_VARIANTS = [
-    {"Accept": "*/*"},
-    {"Accept": "text/html,application/xhtml+xml,*/*"},
-    {},  # no Accept header (cookie-based session)
+    # Axios default (most modern SPAs)
+    {"Accept": "application/json, text/plain, */*", "X-Requested-With": "XMLHttpRequest"},
+    # jQuery AJAX default
+    {"Accept": "application/json, text/javascript, */*; q=0.01", "X-Requested-With": "XMLHttpRequest"},
+    # Axios without XHR flag
+    {"Accept": "application/json, text/plain, */*"},
+    # Simple JSON
     {"Accept": "application/json"},
+    # Wildcard
+    {"Accept": "*/*"},
+    # Browser default
+    {"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"},
+    # No Accept header
+    {},
 ]
 
 AB_LINES_PATHS = [
@@ -151,6 +161,7 @@ _state = {
     "errors":            [],
     "stake":             100.0,
     "probe_results":     {},    # path → status code (for /api/debug)
+    "sample_resp_headers": {},  # response headers from first 406/401 (debug)
 }
 _lock = threading.Lock()
 
@@ -247,65 +258,97 @@ def ab_probe_lines(token, session):
     """
     probe_results = {}
 
+    # Capture response headers from first 406/401 for debugging
+    sample_resp_headers = {}
+
     for path in AB_LINES_PATHS:
         url = AB_BASE + path
-        for hv in AB_HEADER_VARIANTS:
-            # Try with Bearer token
-            headers = {**hv, "Authorization": f"Bearer {token}"}
-            try:
-                r = session.get(url, params={"agentSite": 0}, headers=headers, timeout=15)
-                probe_results[f"Bearer {path}"] = r.status_code
-                print(f"  [probe] {r.status_code} Bearer GET {path} accept={hv.get('Accept','none')}")
-                if r.ok and len(r.text) > 50:
-                    try:
-                        data = r.json()
-                        print(f"  [probe] SUCCESS: {path}")
-                        with _lock:
-                            _state["probe_results"] = probe_results
-                        return data, url, headers
-                    except:
-                        pass
-            except Exception as e:
-                probe_results[f"Bearer {path}"] = str(e)
 
-        # Also try cookie-only (no Authorization header)
-        for hv in AB_HEADER_VARIANTS:
+        # Try each Accept variant with Bearer token — with and without agentSite param
+        for param_set in [{"agentSite": 0}, {}]:
+            for hv in AB_HEADER_VARIANTS:
+                headers = {**hv, "Authorization": f"Bearer {token}"}
+                param_label = "p" if param_set else "np"
+                key = f"Bearer{param_label} {path} {hv.get('Accept','none')[:20]}"
+                try:
+                    r = session.get(url, params=param_set if param_set else None,
+                                    headers=headers, timeout=15)
+                    probe_results[key] = r.status_code
+                    print(f"  [probe] {r.status_code} Bearer GET {path} params={param_label} accept={hv.get('Accept','none')[:30]}")
+                    if not sample_resp_headers and r.status_code in (406, 401):
+                        sample_resp_headers = dict(r.headers)
+                    if r.ok and len(r.text) > 50:
+                        try:
+                            data = r.json()
+                            print(f"  [probe] SUCCESS: {path}")
+                            with _lock:
+                                _state["probe_results"] = probe_results
+                                _state["sample_resp_headers"] = sample_resp_headers
+                            return data, url, headers
+                        except:
+                            pass
+                except Exception as e:
+                    probe_results[key] = str(e)
+
+        # Cookie-only (session cookies from login, no Authorization header)
+        for hv in AB_HEADER_VARIANTS[:3]:  # just top 3 to keep it fast
             try:
                 r = session.get(url, params={"agentSite": 0}, headers=hv, timeout=15)
-                probe_results[f"cookie {path}"] = r.status_code
-                print(f"  [probe] {r.status_code} cookie-only GET {path} accept={hv.get('Accept','none')}")
+                key = f"cookie {path}"
+                probe_results[key] = r.status_code
+                print(f"  [probe] {r.status_code} cookie GET {path} accept={hv.get('Accept','none')[:30]}")
                 if r.ok and len(r.text) > 50:
                     try:
                         data = r.json()
-                        print(f"  [probe] SUCCESS cookie-only: {path}")
+                        print(f"  [probe] SUCCESS cookie: {path}")
                         with _lock:
                             _state["probe_results"] = probe_results
+                            _state["sample_resp_headers"] = sample_resp_headers
                         return data, url, hv
                     except:
                         pass
             except Exception as e:
                 probe_results[f"cookie {path}"] = str(e)
 
-        # Try POST with various combos
-        for hv in [{"Accept": "*/*", "Authorization": f"Bearer {token}"},
-                   {"Accept": "*/*"}]:
+        # POST with Bearer (JSON body)
+        for post_hv in [
+            {"Accept": "application/json, text/plain, */*", "X-Requested-With": "XMLHttpRequest",
+             "Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            {"Accept": "application/json, text/plain, */*", "Authorization": f"Bearer {token}"},
+            {"Accept": "*/*", "Authorization": f"Bearer {token}"},
+        ]:
             try:
-                r = session.post(url, json={"agentSite": 0}, headers=hv, timeout=15)
-                probe_results[f"POST {path}"] = r.status_code
+                r = session.post(url, json={}, headers=post_hv, timeout=15)
+                key = f"POST-bearer {path}"
+                probe_results[key] = r.status_code
+                print(f"  [probe] {r.status_code} POST-bearer {path}")
                 if r.ok and len(r.text) > 50:
                     try:
                         data = r.json()
-                        print(f"  [probe] SUCCESS POST: {path}")
+                        print(f"  [probe] SUCCESS POST-bearer: {path}")
                         with _lock:
                             _state["probe_results"] = probe_results
-                        return data, url, hv
+                            _state["sample_resp_headers"] = sample_resp_headers
+                        return data, url, post_hv
                     except:
                         pass
+                if not sample_resp_headers and r.status_code in (406, 401):
+                    sample_resp_headers = dict(r.headers)
+                break  # only try first non-exception
             except:
                 pass
 
+        # POST no auth (cookie session)
+        try:
+            r = session.post(url, json={}, headers={"Accept": "application/json, text/plain, */*",
+                                                     "X-Requested-With": "XMLHttpRequest"}, timeout=15)
+            probe_results[f"POST-cookie {path}"] = r.status_code
+        except:
+            pass
+
     with _lock:
         _state["probe_results"] = probe_results
+        _state["sample_resp_headers"] = sample_resp_headers
     return None, None, None
 
 def ab_fetch_lines(token, session, endpoint, headers):
@@ -649,9 +692,10 @@ def api_debug():
             "ab_lines_raw":      _state["ab_lines_raw"],
             "ab_lines_endpoint": _state["ab_lines_endpoint"],
             "ab_header_variant": str(_state["ab_header_variant"]),
-            "probe_results":     _state["probe_results"],
-            "ab_status":         _state["ab_status"],
-            "ab_teams_parsed":   list(_state["ab_lines"].keys())[:30],
+            "probe_results":       _state["probe_results"],
+            "sample_resp_headers": _state["sample_resp_headers"],
+            "ab_status":           _state["ab_status"],
+            "ab_teams_parsed":     list(_state["ab_lines"].keys())[:30],
         })
 
 
