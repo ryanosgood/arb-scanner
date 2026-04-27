@@ -709,6 +709,8 @@ def api_probe_live():
         b = json.loads(body)
     except:
         b = {}
+    # Always add agentSite=0 (required by PPH Insider API prefilter)
+    form_data = {**b, "agentSite": 0}
     with _lock:
         token   = _state.get("ab_token")
         session = _state.get("ab_session")
@@ -716,27 +718,68 @@ def api_probe_live():
         return jsonify({"error": "Not logged in — no token/session"})
     url = AB_BASE + path
     results = {}
-    combos = [
-        ("POST-json-axios", "POST",  {"Accept":"application/json, text/plain, */*","X-Requested-With":"XMLHttpRequest","Authorization":f"Bearer {token}","Content-Type":"application/json"}, b),
-        ("POST-form-axios", "POST",  {"Accept":"application/json, text/plain, */*","X-Requested-With":"XMLHttpRequest","Authorization":f"Bearer {token}","Content-Type":"application/x-www-form-urlencoded"}, None),
-        ("GET-axios",       "GET",   {"Accept":"application/json, text/plain, */*","X-Requested-With":"XMLHttpRequest","Authorization":f"Bearer {token}"}, None),
+    ax_hdrs = {"Accept":"application/json, text/plain, */*","X-Requested-With":"XMLHttpRequest","Authorization":f"Bearer {token}"}
+    # POST form-encoded with agentSite=0 (how the browser jQuery does it)
+    try:
+        r = session.post(url, data=form_data, headers={**ax_hdrs}, timeout=15)
+        results["POST-form-agentSite0"] = {"status": r.status_code, "body": r.text[:800], "ct": r.headers.get("Content-Type","")}
+    except Exception as e:
+        results["POST-form-agentSite0"] = {"error": str(e)}
+    # POST JSON with agentSite=0
+    try:
+        r = session.post(url, json=form_data, headers={**ax_hdrs, "Content-Type":"application/json"}, timeout=15)
+        results["POST-json-agentSite0"] = {"status": r.status_code, "body": r.text[:800], "ct": r.headers.get("Content-Type","")}
+    except Exception as e:
+        results["POST-json-agentSite0"] = {"error": str(e)}
+    # POST form empty
+    try:
+        r = session.post(url, data={}, headers={**ax_hdrs}, timeout=15)
+        results["POST-form-empty"] = {"status": r.status_code, "body": r.text[:800], "ct": r.headers.get("Content-Type","")}
+    except Exception as e:
+        results["POST-form-empty"] = {"error": str(e)}
+    # GET
+    try:
+        r = session.get(url, headers=ax_hdrs, timeout=15)
+        results["GET"] = {"status": r.status_code, "body": r.text[:400], "ct": r.headers.get("Content-Type","")}
+    except Exception as e:
+        results["GET"] = {"error": str(e)}
+    return jsonify(results)
+
+
+@app.route("/api/scan-paths")
+def api_scan_paths():
+    """Batch probe many AB paths with form-encoded agentSite=0."""
+    from flask import request as flask_request
+    with _lock:
+        token   = _state.get("ab_token")
+        session = _state.get("ab_session")
+    if not token or not session:
+        return jsonify({"error": "Not logged in"})
+    ax_hdrs = {"Accept":"application/json, text/plain, */*","X-Requested-With":"XMLHttpRequest","Authorization":f"Bearer {token}"}
+    paths_to_try = [
+        "/Lines/GetLeagues", "/Lines/GetSports", "/Lines/getLeagues", "/Lines/getSports",
+        "/Lines/GetLines", "/Lines/getLines", "/Lines/GetAllLines",
+        "/Lines/GetStraight", "/Lines/GetHandicap", "/Lines/GetTotals",
+        "/Lines/GetOpenLines", "/Lines/GetTodayLines",
+        "/League/GetLeagues", "/League/GetSports", "/League/GetLines",
+        "/League/GetGames", "/League/getStraightLines", "/League/getSports",
+        "/Customer/GetLeagueConfig", "/Customer/GetSportsList",
+        "/Provider/GetLeagues", "/Provider/GetSports",
+        "/Sports/GetSports", "/Sports/GetLeagues", "/Sports/GetLines",
+        "/Wager/GetWagerTypes", "/Wager/GetLines",
+        "/Schedule/GetGames", "/Schedule/GetLines",
+        "/Board/GetLines", "/Board/GetGames",
+        "/Game/GetGames", "/Game/GetLines",
     ]
-    for label, method, headers, json_body in combos:
+    results = {}
+    for p in paths_to_try:
+        url = AB_BASE + p
         try:
-            if method == "POST":
-                if json_body is not None:
-                    r = session.post(url, json=json_body, headers=headers, timeout=15)
-                else:
-                    r = session.post(url, data={}, headers=headers, timeout=15)
-            else:
-                r = session.get(url, headers=headers, timeout=15)
-            results[label] = {
-                "status": r.status_code,
-                "body":   r.text[:500],
-                "resp_headers": dict(r.headers),
-            }
+            r = session.post(url, data={"agentSite": 0}, headers=ax_hdrs, timeout=10)
+            snippet = r.text[:400].replace("\n"," ")
+            results[p] = {"status": r.status_code, "body": snippet, "ct": r.headers.get("Content-Type","")}
         except Exception as e:
-            results[label] = {"error": str(e)}
+            results[p] = {"error": str(e)}
     return jsonify(results)
 
 
