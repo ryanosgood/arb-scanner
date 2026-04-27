@@ -699,6 +699,47 @@ def api_debug():
         })
 
 
+@app.route("/api/probe-live")
+def api_probe_live():
+    """Make a live POST to an AB endpoint and return the full response for debugging."""
+    from flask import request as flask_request
+    path  = flask_request.args.get("path", "/Lines/GetStraightLines")
+    body  = flask_request.args.get("body", "{}")
+    try:
+        b = json.loads(body)
+    except:
+        b = {}
+    with _lock:
+        token   = _state.get("ab_token")
+        session = _state.get("ab_session")
+    if not token or not session:
+        return jsonify({"error": "Not logged in — no token/session"})
+    url = AB_BASE + path
+    results = {}
+    combos = [
+        ("POST-json-axios", "POST",  {"Accept":"application/json, text/plain, */*","X-Requested-With":"XMLHttpRequest","Authorization":f"Bearer {token}","Content-Type":"application/json"}, b),
+        ("POST-form-axios", "POST",  {"Accept":"application/json, text/plain, */*","X-Requested-With":"XMLHttpRequest","Authorization":f"Bearer {token}","Content-Type":"application/x-www-form-urlencoded"}, None),
+        ("GET-axios",       "GET",   {"Accept":"application/json, text/plain, */*","X-Requested-With":"XMLHttpRequest","Authorization":f"Bearer {token}"}, None),
+    ]
+    for label, method, headers, json_body in combos:
+        try:
+            if method == "POST":
+                if json_body is not None:
+                    r = session.post(url, json=json_body, headers=headers, timeout=15)
+                else:
+                    r = session.post(url, data={}, headers=headers, timeout=15)
+            else:
+                r = session.get(url, headers=headers, timeout=15)
+            results[label] = {
+                "status": r.status_code,
+                "body":   r.text[:500],
+                "resp_headers": dict(r.headers),
+            }
+        except Exception as e:
+            results[label] = {"error": str(e)}
+    return jsonify(results)
+
+
 @app.route("/")
 def index():
     return Response(HTML, mimetype="text/html")
