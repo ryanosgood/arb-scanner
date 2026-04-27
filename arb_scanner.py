@@ -158,6 +158,8 @@ _state = {
     "last_updated":      None,
     "ab_status":         "Not configured",
     "ab_credentials":    None,
+    "ab_customer_id":    "",    # populated on login from accountInfo.customerID
+    "ab_office":         "PREMIER",  # populated on login from accountInfo.Office
     "errors":            [],
     "stake":             100.0,
     "probe_results":     {},    # path → status code (for /api/debug)
@@ -242,6 +244,10 @@ def ab_login(username, password):
             data = r.json()
             with _lock:
                 _state["ab_login_raw"] = data
+                # Store customer info for later API calls
+                acct = data.get("accountInfo", {})
+                _state["ab_customer_id"] = acct.get("customerID", username.upper()).strip()
+                _state["ab_office"]      = acct.get("Office", "PREMIER").strip()
             if "code" in data:
                 print(f"  [AB] Login OK. Cookies: {dict(session.cookies)}")
                 return str(data["code"]), session
@@ -250,6 +256,105 @@ def ab_login(username, password):
         print(f"  [AB] Login error: {e}")
     return None, None
 
+
+
+
+def ab_auth_params(token):
+    """Build the standard auth body params required by PPH Insider API."""
+    with _lock:
+        customer_id = _state.get("ab_customer_id", "")
+        office      = _state.get("ab_office", "PREMIER")
+    return {
+        "customerID":    customer_id,
+        "token":         token,
+        "office":        office,
+        "wagerType":     "S",
+        "placeLateFlag": False,
+        "RRO":           1,
+        "agentSite":     0,
+    }
+
+
+def ab_fetch_leagues(token, session):
+    """
+    Fetch available sports/leagues from League/Get_SportsLeagues.
+    Returns list of league dicts or None on failure.
+    """
+    url = AB_BASE + "/League/Get_SportsLeagues"
+    params = {**ab_auth_params(token), "operation": "Get_SportsLeagues"}
+    headers = {
+        "Accept": "application/json, text/plain, */*",
+        "X-Requested-With": "XMLHttpRequest",
+        "Authorization": f"Bearer {token}",
+    }
+    try:
+        r = session.post(url, data=params, headers=headers, timeout=15)
+        print(f"  [AB] Get_SportsLeagues -> {r.status_code}")
+        if r.ok:
+            data = r.json()
+            leagues = data.get("Leagues", [])
+            print(f"  [AB] Got {len(leagues)} leagues")
+            return leagues
+        print(f"  [AB] Get_SportsLeagues failed: {r.text[:300]}")
+    except Exception as e:
+        print(f"  [AB] Get_SportsLeagues error: {e}")
+    return None
+
+
+def ab_fetch_lines_for_sport(token, session, sport_type, sport_sub_type,
+                              sport_sub_type2="", period="Game",
+                              period_number=0, grouping=""):
+    """
+    Fetch game lines for a specific sport/league.
+    Tries likely function names on the Line/Lines model.
+    """
+    headers = {
+        "Accept": "application/json, text/plain, */*",
+        "X-Requested-With": "XMLHttpRequest",
+        "Authorization": f"Bearer {token}",
+    }
+    base_params = {
+        **ab_auth_params(token),
+        "sportType":     sport_type,
+        "sportSubType":  sport_sub_type,
+        "sportSubType2": sport_sub_type2,
+        "period":        period,
+        "periodNumber":  period_number,
+        "grouping":      grouping,
+        "propDescription": sport_sub_type2,
+    }
+    # Try likely function+model combos (underscore convention from Get_SportsLeagues)
+    candidates = [
+        "/League/Get_Lines",
+        "/League/Get_StraightLines",
+        "/League/Get_GameLines",
+        "/Lines/Get_Lines",
+        "/Lines/Get_StraightLines",
+        "/Lines/Get_GameLines",
+        "/Board/Get_Lines",
+        "/Game/Get_Lines",
+        "/Game/Get_Games",
+    ]
+    for path in candidates:
+        func_name = path.split("/")[-1]
+        params = {**base_params, "operation": func_name}
+        url = AB_BASE + path
+        try:
+            r = session.post(url, data=params, headers=headers, timeout=15)
+            print(f"  [AB] {path} -> {r.status_code}")
+            if r.ok and len(r.text) > 50:
+                try:
+                    data = r.json()
+                    print(f"  [AB] SUCCESS on {path}")
+                    with _lock:
+                        _state["ab_lines_endpoint"] = path
+                        _state["ab_lines_raw"] = data
+                    return data
+                except Exception:
+                    pass
+        except Exception as e:
+            print(f"  [AB] {path} error: {e}")
+    return None
 
 def ab_probe_lines(token, session):
     """
@@ -568,43 +673,55 @@ def full_refresh(stake=100.0):
                 ab_status = "Login failed"
 
         if token and session:
-            if not endpoint:
-                print("  Probing AB lines endpoints...")
-                raw, endpoint, hdrs = ab_probe_lines(token, session)
-                if raw:
-                    ab_lines  = parse_ab_lines(raw)
+            print("  Fetching AB leagues via League/Get_SportsLeagues...")
+            leagues = ab_fetch_leagues(token, session)
+            if leagues is None:
+                # Re-login and try again
+                print("  League fetch failed — re-logging in...")
+                token, session = ab_login(username, password)
+                if token:
+                    leagues = ab_fetch_leagues(token, session)
+
+            if leagues:
+                # Target sports: NBA, MLB, NFL, NHL
+                TARGET_SPORTS = {
+                    "BASKETBALL": ["NBA"],
+                    "BASEBALL":   ["MLB"],
+                    "FOOTBALL":   ["NFL"],
+                    "HOCKEY":     ["NHL"],
+                }
+                all_raw_lines = {}
+                for lg in leagues:
+                    sport_type = lg.get("SportType", "").upper()
+                    sport_sub  = lg.get("SportSubType", "").upper()
+                    period_num = lg.get("PeriodNumber", 0)
+                    active     = str(lg.get("Active", "")).upper()
+                    # Only main game lines (PeriodNumber=0) for target sports
+                    if active != "Y" or period_num != 0:
+                        continue
+                    for sport, subs in TARGET_SPORTS.items():
+                        if sport_type == sport and any(s in sport_sub for s in subs):
+                            raw = ab_fetch_lines_for_sport(
+                                token, session,
+                                lg.get("SportType", ""),
+                                lg.get("SportSubType", ""),
+                                lg.get("SportSubType2", ""),
+                                lg.get("PeriodDescription", "Game"),
+                                period_num,
+                                lg.get("Grouping", ""),
+                            )
+                            if raw:
+                                parsed = parse_ab_lines(raw)
+                                all_raw_lines.update(parsed)
+                if all_raw_lines:
+                    ab_lines  = all_raw_lines
                     ab_status = f"Live — {len(ab_lines)} teams"
-                    print(f"  AB lines: {len(ab_lines)} teams from {endpoint}")
+                    print(f"  AB lines: {len(ab_lines)} teams")
                 else:
-                    # Token might be expired — re-login and probe again
-                    print("  No lines found — re-logging in...")
-                    token, session = ab_login(username, password)
-                    if token:
-                        raw, endpoint, hdrs = ab_probe_lines(token, session)
-                        if raw:
-                            ab_lines  = parse_ab_lines(raw)
-                            ab_status = f"Live — {len(ab_lines)} teams"
-                        else:
-                            ab_status = "Logged in — lines endpoint not found (check /api/debug)"
-                    else:
-                        ab_status = "Re-login failed"
+                    ab_status = "Leagues found — lines endpoint not yet discovered (check /api/scan-paths)"
             else:
-                raw = ab_fetch_lines(token, session, endpoint, hdrs)
-                if raw:
-                    ab_lines  = parse_ab_lines(raw)
-                    ab_status = f"Live — {len(ab_lines)} teams"
-                else:
-                    # Expired — re-login
-                    token, session = ab_login(username, password)
-                    if token:
-                        raw = ab_fetch_lines(token, session, endpoint, hdrs)
-                        if raw:
-                            ab_lines  = parse_ab_lines(raw)
-                            ab_status = f"Live — {len(ab_lines)} teams"
-                        else:
-                            ab_status = "Lines fetch failed after re-login"
-                    else:
-                        ab_status = "Re-login failed"
+                ab_status = "Logged in — lines endpoint not found (check /api/debug)"
+
     else:
         ab_status = "Set AB_USERNAME + AB_PASSWORD in Railway env vars"
 
@@ -623,7 +740,6 @@ def full_refresh(stake=100.0):
         _state["last_updated"]      = datetime.now().isoformat()
         if username:
             _state["ab_credentials"] = (username, password)
-
 
 def background_loop():
     while True:
@@ -709,13 +825,13 @@ def api_probe_live():
         b = json.loads(body)
     except:
         b = {}
-    # Always add agentSite=0 (required by PPH Insider API prefilter)
-    form_data = {**b, "agentSite": 0}
     with _lock:
         token   = _state.get("ab_token")
         session = _state.get("ab_session")
     if not token or not session:
         return jsonify({"error": "Not logged in — no token/session"})
+    # Always include full auth params (required by PPH Insider API)
+    form_data = {**ab_auth_params(token), **b}
     url = AB_BASE + path
     results = {}
     ax_hdrs = {"Accept":"application/json, text/plain, */*","X-Requested-With":"XMLHttpRequest","Authorization":f"Bearer {token}"}
@@ -748,7 +864,7 @@ def api_probe_live():
 
 @app.route("/api/scan-paths")
 def api_scan_paths():
-    """Batch probe many AB paths with form-encoded agentSite=0."""
+    """Batch probe many AB paths with form-encoded agentSite=0. Returns status+body snippet for each."""
     from flask import request as flask_request
     with _lock:
         token   = _state.get("ab_token")
@@ -756,32 +872,106 @@ def api_scan_paths():
     if not token or not session:
         return jsonify({"error": "Not logged in"})
     ax_hdrs = {"Accept":"application/json, text/plain, */*","X-Requested-With":"XMLHttpRequest","Authorization":f"Bearer {token}"}
+    auth = ab_auth_params(token)
+    # Paths to probe — underscore naming convention discovered from Get_SportsLeagues
     paths_to_try = [
-        "/Lines/GetLeagues", "/Lines/GetSports", "/Lines/getLeagues", "/Lines/getSports",
-        "/Lines/GetLines", "/Lines/getLines", "/Lines/GetAllLines",
-        "/Lines/GetStraight", "/Lines/GetHandicap", "/Lines/GetTotals",
-        "/Lines/GetOpenLines", "/Lines/GetTodayLines",
-        "/League/GetLeagues", "/League/GetSports", "/League/GetLines",
-        "/League/GetGames", "/League/getStraightLines", "/League/getSports",
-        "/Customer/GetLeagueConfig", "/Customer/GetSportsList",
-        "/Provider/GetLeagues", "/Provider/GetSports",
-        "/Sports/GetSports", "/Sports/GetLeagues", "/Sports/GetLines",
-        "/Wager/GetWagerTypes", "/Wager/GetLines",
-        "/Schedule/GetGames", "/Schedule/GetLines",
-        "/Board/GetLines", "/Board/GetGames",
-        "/Game/GetGames", "/Game/GetLines",
+        # League model — confirmed working base (Get_SportsLeagues returns 200)
+        "/League/Get_SportsLeagues",
+        "/League/Get_Lines",
+        "/League/Get_StraightLines",
+        "/League/Get_GameLines",
+        "/League/Get_Games",
+        "/League/verifyLeagues",
+        # Lines model — PascalCase and underscore variants
+        "/Lines/Get_Lines",
+        "/Lines/Get_StraightLines",
+        "/Lines/Get_GameLines",
+        "/Lines/Get_SportsLines",
+        "/Lines/Get_Games",
+        "/Lines/getLines",
+        "/Lines/getStraightLines",
+        # Board model (returned 500 with empty body — try with auth params)
+        "/Board/Get_Lines",
+        "/Board/Get_Games",
+        "/Board/Get_StraightLines",
+        "/Board/GetLines",
+        "/Board/GetGames",
+        # Game model (returned 500 with empty body — try with auth params)
+        "/Game/Get_Games",
+        "/Game/Get_Lines",
+        "/Game/GetGames",
+        "/Game/GetLines",
+        # Schedule model
+        "/Schedule/Get_Games",
+        "/Schedule/Get_Lines",
+        "/Schedule/GetGames",
+        # Sports model
+        "/Sports/Get_Sports",
+        "/Sports/Get_Lines",
+        "/Sports/Get_Games",
+        # WagerSport model (from wager.js)
+        "/WagerSport/checkWagerLineMulti",
+        "/WagerSport/Get_Lines",
+        # Customer lines
+        "/Customer/Get_Lines",
+        "/Customer/getLines",
     ]
     results = {}
     for p in paths_to_try:
         url = AB_BASE + p
+        func_name = p.split("/")[-1]
+        params = {**auth, "operation": func_name}
         try:
-            r = session.post(url, data={"agentSite": 0}, headers=ax_hdrs, timeout=10)
-            snippet = r.text[:400].replace("\n"," ")
+            r = session.post(url, data=params, headers=ax_hdrs, timeout=10)
+            snippet = r.text[:500].replace("\n"," ")
             results[p] = {"status": r.status_code, "body": snippet, "ct": r.headers.get("Content-Type","")}
         except Exception as e:
             results[p] = {"error": str(e)}
     return jsonify(results)
 
+
+@app.route("/api/test-leagues")
+def api_test_leagues():
+    """Call League/Get_SportsLeagues with full auth params and return raw response."""
+    with _lock:
+        token   = _state.get("ab_token")
+        session = _state.get("ab_session")
+    if not token or not session:
+        return jsonify({"error": "Not logged in"})
+    leagues = ab_fetch_leagues(token, session)
+    if leagues is None:
+        return jsonify({"error": "Get_SportsLeagues returned None"})
+    # Filter for sports we care about
+    sports = {}
+    for lg in leagues:
+        st = lg.get("SportType", "")
+        if st not in sports:
+            sports[st] = []
+        sports[st].append({
+            "SportSubType":    lg.get("SportSubType"),
+            "PeriodNumber":    lg.get("PeriodNumber"),
+            "PeriodDescription": lg.get("PeriodDescription"),
+            "Active":          lg.get("Active"),
+        })
+    return jsonify({"total": len(leagues), "by_sport": sports, "raw_first_5": leagues[:5]})
+
+
+@app.route("/api/test-lines")
+def api_test_lines():
+    """Try to fetch lines for NBA/MLB using discovered sport params from /api/test-leagues."""
+    from flask import request as flask_request
+    sport_type    = flask_request.args.get("sport", "BASKETBALL")
+    sport_subtype = flask_request.args.get("sub", "NBA")
+    period        = flask_request.args.get("period", "Game")
+    with _lock:
+        token   = _state.get("ab_token")
+        session = _state.get("ab_session")
+    if not token or not session:
+        return jsonify({"error": "Not logged in"})
+    raw = ab_fetch_lines_for_sport(token, session, sport_type, sport_subtype, period=period)
+    if raw is None:
+        return jsonify({"error": "All line endpoints failed"})
+    return jsonify({"ok": True, "preview": str(raw)[:2000]})
 
 @app.route("/")
 def index():
